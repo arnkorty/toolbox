@@ -306,12 +306,16 @@ end
 
 def sample_data
   @sample_data ||= begin
-                     data = []
-                     5.times.each do
-                       res = Faraday.get 'https://api.bitfinex.com/v1/book/btcusd'
-                       data << JSON.parse(res.body)['bids']
+                     data = {}
+                     @markets.each do |market|
+                       data[market] ||= []
+                       5.times.each do
+                        res = Faraday.get "https://api.bitfinex.com/v1/book/#{market}"
+                       data[market] << JSON.parse(res.body)['bids']
                      end
-                     data.flatten
+                     data[market].flatten.reject &:blank?
+                     end
+                     data
                    end
 end
 
@@ -338,10 +342,11 @@ def create_and_run_workers
       loop do
         break if all_orders_created?
         break if @terminating
-        example = sample_data.sample
+        market = @markets.sample
+        example = sample_data[market].sample
         api_v2_post '/orders', data: {
           side:   %w[sell buy].sample,
-          market: @markets.sample,
+          market: market,
           volume: example['amount'],
           price:  example['price'],
         }, jwt: api_v2_jwt_for(traders.sample)
