@@ -9,6 +9,7 @@ require 'uri'
 require 'securerandom'
 require 'thread'
 require 'bundler'
+require 'json'
 Bundler.require :default, :cli
 
 extend Memoist
@@ -135,7 +136,7 @@ end
 
 def configure_currencies(currencies)
   @currencies = currencies.to_s.split(',').map(&:squish).reject(&:blank?)
-  raise ArgumentError, 'At least two fiat currencies must be provided.' if @currencies.count < 2
+  raise ArgumentError, 'At least two fiat currencies must be provided.' if @currencies.count < 1
 end
 
 def configure_markets(markets)
@@ -303,6 +304,17 @@ def all_orders_created?
   end
 end
 
+def sample_data
+  @sample_data ||= begin
+                     data = []
+                     5.times.each do
+                       res = Faraday.get 'https://api.bitfinex.com/v1/book/btcusd'
+                       data << JSON.parse(res.body)['bids']
+                     end
+                     data.flatten
+                   end
+end
+
 def install_handlers_for_process_signals
   @interrupts_received = 0
   %i[ INT TERM HUP QUIT ].each do |signal|
@@ -326,11 +338,12 @@ def create_and_run_workers
       loop do
         break if all_orders_created?
         break if @terminating
+        example = sample_data.sample
         api_v2_post '/orders', data: {
           side:   %w[sell buy].sample,
           market: @markets.sample,
-          volume: volumes.sample.to_s,
-          price:  prices.sample.to_s
+          volume: example['amount'],
+          price:  example['price'],
         }, jwt: api_v2_jwt_for(traders.sample)
         order_created
       rescue => e

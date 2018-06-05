@@ -16,6 +16,7 @@ GEM
     highline (1.7.10)
     i18n (1.0.1)
       concurrent-ruby (~> 1.0)
+    json (2.1.0)
     jwt (2.1.0)
     jwt-multisig (1.0.0)
       activesupport (>= 4.0, < 6.0)
@@ -35,6 +36,7 @@ DEPENDENCIES
   commander (~> 4.4)
   faker (~> 1.8)
   faraday (~> 0.12)
+  json
   jwt (~> 2.1)
   jwt-multisig (~> 1.0)
   memoist (~> 0.16)
